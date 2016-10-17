@@ -8,6 +8,9 @@
 #include "memory.h"
 #include "Assignment.h"
 
+extern std::string GETNext(); //////OS
+extern void resetIndirectNameValue(); /////OS
+ 
 class Expression : public ASTNode
 {
 public:
@@ -158,6 +161,7 @@ public:
 	std::string name;
 	AssignmentList arguments;
 };
+
 
 class Let : public Expression
 {

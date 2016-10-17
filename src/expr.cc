@@ -75,6 +75,23 @@ namespace /* anonymous*/ {
 
 }
 
+/////////////////////////////////////OS
+//vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+static int IndirectNameValue = 0;
+
+void resetIndirectNameValue()
+{
+  IndirectNameValue = 0;
+};
+
+std::string GETNext()
+{
+  IndirectNameValue += 1;
+  return std::to_string(IndirectNameValue)+".";
+}; 
+//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/////////////////////////////////////////OS
+
 UnaryOp::UnaryOp(UnaryOp::Op op, Expression *expr, const Location &loc) : Expression(loc), op(op), expr(expr)
 {
 }
@@ -376,23 +393,39 @@ void MemberLookup::print(std::ostream &stream) const
 	stream << *this->expr << "." << this->member;
 }
 
+
+
 FunctionCall::FunctionCall(const std::string &name, 
-													 const AssignmentList &args, const Location &loc)
-	: Expression(loc), name(name), arguments(args)
+                           const AssignmentList &args, 
+                           const Location &loc
+                          )  : Expression(loc), name(name), arguments(args)
 {
 }
 
 ValuePtr FunctionCall::evaluate(const Context *context) const
 {
-	if (StackCheck::inst()->check()) {
+	if (StackCheck::inst()->check()) 
+	{
 		throw RecursionException::create("function", this->name);
 	}
-    
 	EvalContext c(context, this->arguments);
-	ValuePtr result = context->evaluate_function(this->name, &c);
+	ValuePtr result;
+////////////////////////////////////////////OS
+//vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv	
+	if((this->name).substr(0,1) == "@")
+	{
+	   result = context->evaluate_function((context->lookup_variable((this->name).substr(1)))->toString(), &c);
+	}
+	else
+//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+//////////////////////////////////////////////OS	
+	{
+	   result = context->evaluate_function(this->name, &c);
+	}
 
 	return result;
 }
+
 
 void FunctionCall::print(std::ostream &stream) const
 {

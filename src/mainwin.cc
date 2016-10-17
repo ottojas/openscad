@@ -122,6 +122,8 @@
 
 #include "FontCache.h"
 
+extern void resetIndirectNameValue();  ////////OS used ~ line 1696
+
 // Global application state
 unsigned int GuiLocker::gui_locked = 0;
 
@@ -1690,6 +1692,7 @@ bool MainWindow::fileChangedOnDisk()
 void MainWindow::compileTopLevelDocument()
 {
 	resetPrintedDeprecations();
+    resetIndirectNameValue();   //////////OS
 
 	this->last_compiled_doc = editor->toPlainText();
 

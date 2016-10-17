@@ -24,7 +24,8 @@
  *
  */
 
-%expect 2 /* Expect 2 shift/reduce conflict for ifelse_statement - "dangling else problem" */
+/////OS changed to 4
+%expect 4 /* Expect 2 shift/reduce conflict for ifelse_statement - "dangling else problem"  ADDED 2 TO HELP INDIRECT EXPEARMENTAL*/
 
 %{
 
@@ -70,9 +71,11 @@ extern const char *parser_input_buffer;
 const char *parser_input_buffer;
 fs::path parser_sourcefile;
 
+
 %}
 
 %union {
+  const char *chrs;   ////////////OS type
   char *text;
   double number;
   class Value *value;
@@ -93,6 +96,7 @@ fs::path parser_sourcefile;
 %token TOK_FOR
 %token TOK_LET
 %token TOK_EACH
+%token TOK_INDIRECT     //////OS new token
 
 %token <text> TOK_ID
 %token <text> TOK_STRING
@@ -105,6 +109,7 @@ fs::path parser_sourcefile;
 
 %token LE GE EQ NE AND OR
 
+%nonassoc TOK_INDIRECT
 %right LET
 
 %right '?' ':'
@@ -119,6 +124,7 @@ fs::path parser_sourcefile;
 %left '*' '/' '%'
 %left '[' ']'
 %left '.'
+
 
 %type <expr> expr
 %type <vec> vector_expr
@@ -137,6 +143,8 @@ fs::path parser_sourcefile;
 %type <arg> argument_call
 %type <arg> argument_decl
 %type <text> module_id
+//%type <text> indirect_decl
+//%type <chrs> indirect_call
 
 %debug
 
@@ -173,6 +181,21 @@ statement:
             {
                 scope_stack.pop();
             }
+          
+///////////////////////////OS
+//VVVVVVVVVVVVVVVVVVVVVVVVVVVVV          
+        | TOK_FUNCTION TOK_INDIRECT TOK_ID '(' arguments_decl[args] optional_commas ')' '=' expr[exp]
+            {
+              $<chrs>$ = GETNext().c_str();
+              scope_stack.top()->assignments.push_back(Assignment($3, shared_ptr<Expression>(new Literal(ValuePtr(std::string($<chrs>$)))), LOC(@$)));          
+              UserFunction *func = UserFunction::create(std::string($<chrs>$).c_str(), *$[args], shared_ptr<Expression>($[exp]), LOC(@$));
+                scope_stack.top()->functions[std::string($<chrs>$).c_str()] = func;
+                free($3);
+                delete $[args];
+            }
+//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+////////////////////////////OS             
+             
         | TOK_FUNCTION TOK_ID '(' arguments_decl optional_commas ')' '=' expr
             {
               UserFunction *func = UserFunction::create($2, *$4, shared_ptr<Expression>($8), LOC(@$));
@@ -180,6 +203,8 @@ statement:
                 free($2);
                 delete $4;
             }
+            
+                   
           ';'
         ;
 
@@ -344,7 +369,7 @@ expr:
             }
         | '[' expr ':' expr ']'
             {
-              $$ = new Range($2, $4, LOC(@$));
+              $$ = newexpr: Range($2, $4, LOC(@$));
             }
         | '[' expr ':' expr ':' expr ']'
             {
@@ -369,7 +394,7 @@ expr:
         | expr '%' expr
             {
               $$ = new BinaryOp($1, BinaryOp::Op::Modulo, $3, LOC(@$));
-            }
+            }expr:
         | expr '+' expr
             {
               $$ = new BinaryOp($1, BinaryOp::Op::Plus, $3, LOC(@$));
@@ -440,7 +465,31 @@ expr:
               free($1);
               delete $3;
             }
-        ;
+            
+
+
+//////////////////////////////////////////OS
+//vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+        | TOK_INDIRECT '(' arguments_decl[args] optional_commas ':' expr[exp] ')' 
+            {  
+              $<chrs>$ = GETNext().c_str();          
+              UserFunction *func = UserFunction::create(std::string($<chrs>$).c_str(), *$[args], shared_ptr<Expression>($[exp]), LOC(@$));
+              scope_stack.top()->functions[std::string($<chrs>$).c_str()] = func;
+              delete $[args];
+              $$ = new Literal(ValuePtr(std::string($<chrs>$).c_str()), LOC(@$));
+            }    
+ 
+
+
+       | TOK_INDIRECT TOK_ID '(' arguments_call ')'  
+            {
+              $$ = new FunctionCall((std::string("@")+std::string($2)).c_str(), *$4, LOC(@$));
+              free($2);
+              delete $4;
+            }  
+//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+//////////////////////////////////////////OS
+
 
 list_comprehension_elements:
           /* The last set element may not be a "let" (as that would instead
@@ -549,7 +598,7 @@ argument_decl:
             {
               $$ = new Assignment($1, shared_ptr<Expression>($3), LOC(@$));
                 free($1);
-            }
+            }    
         ;
 
 arguments_call:
@@ -580,7 +629,7 @@ argument_call:
             {
                 $$ = new Assignment($1, shared_ptr<Expression>($3), LOC(@$));
                 free($1);
-            }
+            }  
         ;
 
 %%

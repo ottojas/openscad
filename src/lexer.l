@@ -167,6 +167,7 @@ use[ \t\r\n>]*"<"	{ BEGIN(cond_use); }
 
 "module"	return TOK_MODULE;
 "function"	return TOK_FUNCTION;
+"@"         return TOK_INDIRECT;   /////OS added
 "if"		return TOK_IF;
 "else"		return TOK_ELSE;
 "let"		return TOK_LET;
