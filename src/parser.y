@@ -369,7 +369,7 @@ expr:
             }
         | '[' expr ':' expr ']'
             {
-              $$ = newexpr: Range($2, $4, LOC(@$));
+              $$ = new Range($2, $4, LOC(@$));
             }
         | '[' expr ':' expr ':' expr ']'
             {
@@ -394,7 +394,7 @@ expr:
         | expr '%' expr
             {
               $$ = new BinaryOp($1, BinaryOp::Op::Modulo, $3, LOC(@$));
-            }expr:
+            }
         | expr '+' expr
             {
               $$ = new BinaryOp($1, BinaryOp::Op::Plus, $3, LOC(@$));
@@ -479,7 +479,6 @@ expr:
               $$ = new Literal(ValuePtr(std::string($<chrs>$).c_str()), LOC(@$));
             }    
  
-
 
        | TOK_INDIRECT TOK_ID '(' arguments_call ')'  
             {
